@@ -74,11 +74,11 @@ def generate_rules(patterns):
     nlp = English()
     ruler = nlp.add_pipe("entity_ruler")
     ruler.add_patterns(patterns)
-    nlp.to_disk("../data/saved_files/trained_ner")
+    nlp.to_disk("H:/My Drive/GP/data/trained_files/trained_ner")
 
 
 def test_model(text):
-    nlp = spacy.load("../data/saved_files/trained_ner")
+    nlp = spacy.load("H:/My Drive/GP/data/trained_files/trained_ner")
     doc = nlp(text)
     results = []
     for ent in doc.ents:
