@@ -3,7 +3,7 @@ from torch.nn import functional as F
 
 
 class LSTM(nn.Module):
-    def __init__(self, input_size=1, num_layers=2,hidden_size=64, output_size=64, num_steps =10 ):
+    def __init__(self, input_size=1, num_layers=2,hidden_size=64, output_size=64, num_steps = 15):
         super().__init__()
         self.lstm1 = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=True)
         # self.lstm2 = nn.LSTM(input_size=hidden_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=True)

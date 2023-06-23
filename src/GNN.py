@@ -36,10 +36,11 @@ np.random.seed(232)
 torch.cuda.manual_seed(232)
 torch.cuda.manual_seed_all(232)
 random.seed(232)
+from lstm import LSTM
 
 class GConv(nn.Module):
 
-    def __init__(self, emb_dim:int=64, num_layers:int=2, encode:bool=True, concat_out:bool=False, device='cpu', dropout=0.2, type = 'sage'):
+    def __init__(self, emb_dim:int=64, num_layers:int=2, type = 'sage', encode:bool=True, concat_out:bool=False, device='cpu', dropout=0.2):
 
         super(GConv,self).__init__()
         self.num_layers = num_layers
@@ -87,7 +88,7 @@ class NeuroStock(nn.Module):
                 article_emb_size=768,
                 n_industries=14,
                 n_gnn_layers=3,
-                graph_metadata:Tuple=None):
+                graph_metadata:Tuple=None, type = 'sage'):
         super(NeuroStock, self).__init__()
         """
         company node representation will be a concatenation of its embedding and the output of the timeseries model (in this case it's an LSTM)
@@ -99,7 +100,7 @@ class NeuroStock(nn.Module):
         self.article_emb_size = article_emb_size
         self.n_industries = n_industries
         self.n_gnn_layers = n_gnn_layers
-        self.lstm = LSTM(input_size=num_timeseries_features,  hidden_size=company_emb_size, output_size=company_emb_size).to(torch.float)
+        self.lstm = LSTM(input_size=num_timeseries_features, hidden_size=company_emb_size, output_size=company_emb_size).to(torch.float)
 
         if graph_metadata is None:
             raise("You need to pass HeteroData.metadata()")
@@ -110,7 +111,7 @@ class NeuroStock(nn.Module):
 
         # to_hetero transforms normal gnn aggregation layer to a heterogeneous aggregation layer
         # https://pytorch-geometric.readthedocs.io/en/latest/modules/nn.html#torch_geometric.nn.to_hetero_transformer.to_hetero
-        self.g_conv = gnn.to_hetero(GConv(emb_dim=node_emb_size, num_layers=n_gnn_layers), graph_metadata).to(torch.float)
+        self.g_conv = gnn.to_hetero(GConv(emb_dim=node_emb_size, num_layers=n_gnn_layers, type = type), graph_metadata).to(torch.float)
 
         self.classifier = nn.Sequential(nn.Dropout(0.2),nn.Linear(node_emb_size, 1)).to(torch.float)
 
