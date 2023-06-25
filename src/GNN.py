@@ -3,6 +3,8 @@ from torch_geometric.utils import (
     negative_sampling,
     remove_self_loops ,
 )
+
+from transformer import HistoricalTransformer
 import torch.nn.functional as F
 from sklearn.metrics import accuracy_score,roc_auc_score,average_precision_score
 from sklearn.metrics import precision_score
@@ -88,7 +90,9 @@ class NeuroStock(nn.Module):
                 article_emb_size=768,
                 n_industries=14,
                 n_gnn_layers=3,
-                graph_metadata:Tuple=None, type = 'sage'):
+                graph_metadata:Tuple=None, type = 'sage',
+                lstm:bool=True):
+    
         super(NeuroStock, self).__init__()
         """
         company node representation will be a concatenation of its embedding and the output of the timeseries model (in this case it's an LSTM)
@@ -100,7 +104,11 @@ class NeuroStock(nn.Module):
         self.article_emb_size = article_emb_size
         self.n_industries = n_industries
         self.n_gnn_layers = n_gnn_layers
-        self.lstm = LSTM(input_size=num_timeseries_features, hidden_size=company_emb_size, output_size=company_emb_size).to(torch.float)
+        self.lstm= lstm 
+        if(self.lstm):
+            self.lstm = LSTM(input_size=num_timeseries_features, hidden_size=company_emb_size, output_size=company_emb_size).to(torch.float)
+        else:
+            self.transformer = HistoricalTransformer(hidden_size=15, d_k=15, d_v=15, n_heads=1, ff_dim=256, num_timeseries_features = self.num_timeseries_features, output_size =company_emb_size).to(torch.float)
 
         if graph_metadata is None:
             raise("You need to pass HeteroData.metadata()")
@@ -120,7 +128,10 @@ class NeuroStock(nn.Module):
         companies = self.company_embedding(hetero_x["company"].x)
         # print(hetero_x["company_timeseries"][:,:, -2:-1].to(torch.double).shape, hetero_x["company_timeseries"][:,:, -2:-1].to(torch.float).dtype)
         # company_timeseries is of shape (n_companies*batch_size, n_days, n_features)  the features are "open", "high", "low", "close", "volume"
-        companies_timeseries = self.lstm(hetero_x["company_timeseries"][:,:, -2:-1].to(torch.float))
+        if(self.lstm):
+            companies_timeseries = self.lstm(hetero_x["company_timeseries"][:,:, -2:-1].to(torch.float))
+        else:
+            companies_timeseries = self.transformer(hetero_x["company_timeseries"][:,:,0:self.num_timeseries_features].to(torch.float))
         hetero_x["company"].x = torch.cat((companies_timeseries, companies), dim=-1)  #companies are in shape (n_companies*batch_size, node_emb_size)
         hetero_x["industry"].x = self.industry_embedding(hetero_x["industry"].x)
         graph = self.g_conv(hetero_x.x_dict, hetero_x.edge_index_dict)
