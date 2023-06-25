@@ -1,6 +1,7 @@
 import torch
 from tqdm import tqdm
 from typing import List
+import json
 
 
 def get_companies(article:str, ner)-> List[str]:
@@ -25,3 +26,8 @@ def get_article_vectors(text:List[str], sigma, tokenizer, device, batch_size=32,
 
     all_vectors = torch.cat(all_vectors, axis=0 )
     return all_vectors
+
+def read_config_file(config_file):
+    with open(config_file, "r") as f:
+        data = json.load(f)
+    return data

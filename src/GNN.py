@@ -84,14 +84,15 @@ class NeuroStock(nn.Module):
 
     def __init__(self,
                 num_timeseries_features=1,
-                n_companies=325,
+                n_companies=310,
                 company_emb_size=32,
                 node_emb_size=64,
                 article_emb_size=768,
                 n_industries=14,
-                n_gnn_layers=3,
-                graph_metadata:Tuple=None, type = 'sage',
-                lstm:bool=True):
+                n_gnn_layers=3, 
+                type = 'sage',
+                lstm:bool=True,
+                graph_metadata:Tuple=None):
     
         super(NeuroStock, self).__init__()
         """
@@ -124,6 +125,12 @@ class NeuroStock(nn.Module):
         self.classifier = nn.Sequential(nn.Dropout(0.2),nn.Linear(node_emb_size, 1)).to(torch.float)
 
     def forward(self, hetero_x:HeteroData):
+        companies_timeseries = self.lstm(hetero_x["company_timeseries"][:,:, -2:-1].to(torch.float))
+        
+        if self.use_timeseries_only:
+            out = F.sigmoid(self.classifier(companies_timeseries))
+            return out
+
         hetero_x["article"].x = self.project_article(hetero_x["article"].x)
         companies = self.company_embedding(hetero_x["company"].x)
         # print(hetero_x["company_timeseries"][:,:, -2:-1].to(torch.double).shape, hetero_x["company_timeseries"][:,:, -2:-1].to(torch.float).dtype)
@@ -132,7 +139,8 @@ class NeuroStock(nn.Module):
             companies_timeseries = self.lstm(hetero_x["company_timeseries"][:,:, -2:-1].to(torch.float))
         else:
             companies_timeseries = self.transformer(hetero_x["company_timeseries"][:,:,0:self.num_timeseries_features].to(torch.float))
-        hetero_x["company"].x = torch.cat((companies_timeseries, companies), dim=-1)  #companies are in shape (n_companies*batch_size, node_emb_size)
+        
+        hetero_x["company"].x = companies_timeseries + companies
         hetero_x["industry"].x = self.industry_embedding(hetero_x["industry"].x)
         graph = self.g_conv(hetero_x.x_dict, hetero_x.edge_index_dict)
         out = F.sigmoid(self.classifier(graph["company"]))

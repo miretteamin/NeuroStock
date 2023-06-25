@@ -4,14 +4,19 @@ from tqdm.notebook  import tqdm
 import numpy as np
 import wandb
 
-def train_model(train_loader, testnode_emb_size, company_emb_size, graph_metadata, n_epochs=50):
+def train_model(train_loader, test_loader, config):
 
     wandb.init(
-        project="test_sage",
-        name="test_titles",
-        mode="online")
+            project=config["wandb"]["project"],
+            name=config["wandb"]["run_name"],
+            mode=["wandb"]["mode"])
+
+    n_epochs = config["model"]["n_epochs"]
     
-    neurostock = NeuroStock(node_emb_size=128, company_emb_size=64, graph_metadata=train[0].metadata())
+    first_batch = next(iter(train_loader))
+    train_first_element = first_batch[0]
+
+    neurostock = NeuroStock(node_emb_size=128, company_emb_size=64, graph_metadata=train_first_element.metadata())
     neurostock.to('cuda')
     device = next(neurostock.parameters()).device
     optimizer =  torch.optim.AdamW(neurostock.parameters(), lr=0.001)
@@ -63,3 +68,6 @@ def train_model(train_loader, testnode_emb_size, company_emb_size, graph_metadat
         })
 
     wandb.finish()
+    
+    torch.save(neurostock, config["model"]["model_save_path"])
+    return neurostock
