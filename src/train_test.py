@@ -9,14 +9,20 @@ def train_model(train_loader, test_loader, config):
     wandb.init(
             project=config["wandb"]["project"],
             name=config["wandb"]["run_name"],
-            mode=["wandb"]["mode"])
+            mode=config["wandb"]["mode"])
 
-    n_epochs = config["model"]["n_epochs"]
+    n_epochs = config["gnn_model"]["n_epochs"]
     
     first_batch = next(iter(train_loader))
     train_first_element = first_batch[0]
 
-    neurostock = NeuroStock(node_emb_size=128, company_emb_size=64, graph_metadata=train_first_element.metadata())
+    neurostock = NeuroStock(num_timeseries_features=config["gnn_model"]["num_timeseries_features"], n_companies=config["gnn_model"]["n_companies"], 
+                            node_emb_size=config["gnn_model"]["node_emb_size"], company_emb_size=config["gnn_model"]["company_emb_size"], 
+                            article_emb_size=config["gnn_model"]["node_emb_size"], n_industries=config["gnn_model"]["n_industries"], 
+                            n_gnn_layers=config["gnn_model"]["n_gnn_layers"], use_timeseries_only=config["gnn_model"]["use_timeseries_only"],  
+                            type = config["gnn_model"]["type"], lstm = config["gnn_model"]["lstm"], 
+                            graph_metadata=train_first_element.metadata())
+                            
     neurostock.to('cuda')
     device = next(neurostock.parameters()).device
     optimizer =  torch.optim.AdamW(neurostock.parameters(), lr=0.001)
@@ -69,5 +75,5 @@ def train_model(train_loader, test_loader, config):
 
     wandb.finish()
     
-    torch.save(neurostock, config["model"]["model_save_path"])
+    torch.save(neurostock, config["gnn_model"]["model_save_path"])
     return neurostock

@@ -91,8 +91,8 @@ class NeuroStock(nn.Module):
                 n_industries=14,
                 n_gnn_layers=3, 
                 type = 'sage',
-                lstm:bool=True,
-                graph_metadata:Tuple=None):
+                lstm:bool = True,
+                graph_metadata:Tuple = None, use_timeseries_only:bool = False):
     
         super(NeuroStock, self).__init__()
         """
@@ -104,9 +104,11 @@ class NeuroStock(nn.Module):
         self.node_emb_size = node_emb_size
         self.article_emb_size = article_emb_size
         self.n_industries = n_industries
+        self.use_timeseries_only = use_timeseries_only, 
         self.n_gnn_layers = n_gnn_layers
-        self.lstm= lstm 
-        if(self.lstm):
+        self.lstm= lstm
+
+        if self.lstm:
             self.lstm = LSTM(input_size=num_timeseries_features, hidden_size=company_emb_size, output_size=company_emb_size).to(torch.float)
         else:
             self.transformer = HistoricalTransformer(hidden_size=15, d_k=15, d_v=15, n_heads=1, ff_dim=256, num_timeseries_features = self.num_timeseries_features, output_size =company_emb_size).to(torch.float)
@@ -126,16 +128,18 @@ class NeuroStock(nn.Module):
 
     def forward(self, hetero_x:HeteroData):
         companies_timeseries = self.lstm(hetero_x["company_timeseries"][:,:, -2:-1].to(torch.float))
-        
         if self.use_timeseries_only:
+            print(self.use_timeseries_only)
             out = F.sigmoid(self.classifier(companies_timeseries))
             return out
 
         hetero_x["article"].x = self.project_article(hetero_x["article"].x)
         companies = self.company_embedding(hetero_x["company"].x)
+
         # print(hetero_x["company_timeseries"][:,:, -2:-1].to(torch.double).shape, hetero_x["company_timeseries"][:,:, -2:-1].to(torch.float).dtype)
         # company_timeseries is of shape (n_companies*batch_size, n_days, n_features)  the features are "open", "high", "low", "close", "volume"
-        if(self.lstm):
+        
+        if self.lstm:
             companies_timeseries = self.lstm(hetero_x["company_timeseries"][:,:, -2:-1].to(torch.float))
         else:
             companies_timeseries = self.transformer(hetero_x["company_timeseries"][:,:,0:self.num_timeseries_features].to(torch.float))
