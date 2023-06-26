@@ -4,7 +4,7 @@ https://pytorch-geometric.readthedocs.io/en/latest/tutorial/create_dataset.html
 """
 from torch_geometric.data  import InMemoryDataset
 
-class WeekGraphs_Creation(InMemoryDataset):
+class DayGraphs_Creation(InMemoryDataset):
     def __init__(self, root, data_list, transform=None):
         self.data_list = data_list
         super().__init__(root, transform)
@@ -17,7 +17,7 @@ class WeekGraphs_Creation(InMemoryDataset):
     def process(self):
         torch.save(self.collate(self.data_list), self.processed_paths[0])
 
-class WeekGraphs(InMemoryDataset):
+class DayGraphs(InMemoryDataset):
     def __init__(self, root, transform=None):
         super().__init__(root, transform)
         self.data, self.slices = torch.load(self.processed_paths[0])

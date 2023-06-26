@@ -2,6 +2,8 @@ import torch
 from tqdm import tqdm
 from typing import List
 import json
+import numpy as np
+from transformers import AutoTokenizer, AutoModel
 
 
 def get_companies(article:str, ner)-> List[str]:
@@ -11,7 +13,7 @@ def get_companies(article:str, ner)-> List[str]:
         results.append(ent.label_)
     return list((set(results)))
 
-def get_article_vectors(text:List[str], sigma, tokenizer, device, batch_size=32, max_length=100)-> torch.Tensor:
+def get_article_vectors(text:List[str], model, tokenizer, device, type, batch_size=32, max_length=100)-> torch.Tensor:
     all_vectors = []
     with torch.no_grad():
         for i in tqdm(range(0,len(text),batch_size)):
@@ -20,9 +22,17 @@ def get_article_vectors(text:List[str], sigma, tokenizer, device, batch_size=32,
             for k,v in text_tokens.items():
                 text_tokens[k] = v.to(device)
 
-            out = sigma(**text_tokens, )
-            pooler_output = out.pooler_output
-            all_vectors.append(pooler_output.cpu().detach())
+            out = model(**text_tokens, )
+
+            if type == "sigma":
+                pooler_output = out.pooler_output    
+                all_vectors.append(pooler_output.cpu().detach())
+
+            elif type == "finbert":
+                last_hidden_state = out.last_hidden_state
+                # print(np.shape(last_hidden_state))
+                cls_hidden_state = last_hidden_state[:, 0]
+                all_vectors.append(cls_hidden_state.cpu().detach())
 
     all_vectors = torch.cat(all_vectors, axis=0 )
     return all_vectors
@@ -31,3 +41,14 @@ def read_config_file(config_file):
     with open(config_file, "r") as f:
         data = json.load(f)
     return data
+
+def news_emb_model(type="finbert"):
+    if type == "finbert":
+        tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
+        model = AutoModel.from_pretrained("ProsusAI/finbert")
+        return model, tokenizer
+
+    elif type == "sigma":
+        tokenizer = AutoTokenizer.from_pretrained("Sigma/financial-sentiment-analysis")
+        model = AutoModel.from_pretrained("Sigma/financial-sentiment-analysis")
+        return model, tokenizer

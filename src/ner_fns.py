@@ -70,15 +70,15 @@ def create_training_data(file, typeo):
     return patterns
 
 
-def generate_rules(patterns):
+def generate_rules(patterns, path):
     nlp = English()
     ruler = nlp.add_pipe("entity_ruler")
     ruler.add_patterns(patterns)
-    nlp.to_disk("H:/My Drive/GP/data/trained_files/trained_ner")
+    nlp.to_disk(path)
 
 
-def test_model(text):
-    nlp = spacy.load("H:/My Drive/GP/data/trained_files/trained_ner")
+def test_model(text, path):
+    nlp = spacy.load(path)
     doc = nlp(text)
     results = []
     for ent in doc.ents:
