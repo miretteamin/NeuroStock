@@ -91,8 +91,9 @@ class NeuroStock(nn.Module):
                 n_industries=14,
                 n_gnn_layers=3, 
                 type = 'sage',
+                use_timeseries_only:bool = False,
                 lstm:bool = True,
-                graph_metadata:Tuple = None, use_timeseries_only:bool = False):
+                graph_metadata:Tuple = None):
     
         super(NeuroStock, self).__init__()
         """
@@ -103,9 +104,9 @@ class NeuroStock(nn.Module):
         self.company_emb_size = company_emb_size
         self.node_emb_size = node_emb_size
         self.article_emb_size = article_emb_size
-        self.n_industries = n_industries
-        self.use_timeseries_only = use_timeseries_only, 
+        self.n_industries = n_industries 
         self.n_gnn_layers = n_gnn_layers
+        self.use_timeseries_only = use_timeseries_only
         self.lstm= lstm
 
         if self.lstm:
@@ -127,24 +128,24 @@ class NeuroStock(nn.Module):
         self.classifier = nn.Sequential(nn.Dropout(0.2),nn.Linear(node_emb_size, 1)).to(torch.float)
 
     def forward(self, hetero_x:HeteroData):
-        companies_timeseries = self.lstm(hetero_x["company_timeseries"][:,:, -2:-1].to(torch.float))
+
+        if self.lstm:
+            companies_timeseries = self.lstm(hetero_x["company_timeseries"][:,:, -2:-1].to(torch.float))
+        else:
+            companies_timeseries = self.transformer(hetero_x["company_timeseries"][:,:,0:self.num_timeseries_features].to(torch.float))
+
         if self.use_timeseries_only:
-            print(self.use_timeseries_only)
             out = F.sigmoid(self.classifier(companies_timeseries))
             return out
-
+        
         hetero_x["article"].x = self.project_article(hetero_x["article"].x)
         companies = self.company_embedding(hetero_x["company"].x)
 
         # print(hetero_x["company_timeseries"][:,:, -2:-1].to(torch.double).shape, hetero_x["company_timeseries"][:,:, -2:-1].to(torch.float).dtype)
         # company_timeseries is of shape (n_companies*batch_size, n_days, n_features)  the features are "open", "high", "low", "close", "volume"
         
-        if self.lstm:
-            companies_timeseries = self.lstm(hetero_x["company_timeseries"][:,:, -2:-1].to(torch.float))
-        else:
-            companies_timeseries = self.transformer(hetero_x["company_timeseries"][:,:,0:self.num_timeseries_features].to(torch.float))
-        
-        hetero_x["company"].x = companies_timeseries + companies
+        hetero_x["company"].x = torch.cat((companies_timeseries, companies), dim=-1)  #companies are in shape (n_companies*batch_size, node_emb_size)
+        # hetero_x["company"].x = companies_timeseries + companies
         hetero_x["industry"].x = self.industry_embedding(hetero_x["industry"].x)
         graph = self.g_conv(hetero_x.x_dict, hetero_x.edge_index_dict)
         out = F.sigmoid(self.classifier(graph["company"]))

@@ -3,6 +3,7 @@ import torch
 from tqdm.notebook  import tqdm
 import numpy as np
 import wandb
+import os
 
 def train_model(train_loader, test_loader, config):
 
@@ -18,14 +19,18 @@ def train_model(train_loader, test_loader, config):
 
     neurostock = NeuroStock(num_timeseries_features=config["gnn_model"]["num_timeseries_features"], n_companies=config["gnn_model"]["n_companies"], 
                             node_emb_size=config["gnn_model"]["node_emb_size"], company_emb_size=config["gnn_model"]["company_emb_size"], 
-                            article_emb_size=config["gnn_model"]["node_emb_size"], n_industries=config["gnn_model"]["n_industries"], 
-                            n_gnn_layers=config["gnn_model"]["n_gnn_layers"], use_timeseries_only=config["gnn_model"]["use_timeseries_only"],  
+                            article_emb_size=config["gnn_model"]["article_emb_size"], n_industries=config["gnn_model"]["n_industries"], 
+                            n_gnn_layers=config["gnn_model"]["n_gnn_layers"], use_timeseries_only=config["gnn_model"]["use_timeseries_only"],
                             type = config["gnn_model"]["type"], lstm = config["gnn_model"]["lstm"], 
                             graph_metadata=train_first_element.metadata())
                             
     neurostock.to('cuda')
     device = next(neurostock.parameters()).device
     optimizer =  torch.optim.AdamW(neurostock.parameters(), lr=0.001)
+    best_valid_acc = 0
+    save_dir= os.path.dirname(config["gnn_model"]["best_model_save_path"])
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
     # lr_scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1,  total_iters=warmup_steps)
     for e in tqdm(range(n_epochs)):
         train_losses= []
@@ -66,6 +71,10 @@ def train_model(train_loader, test_loader, config):
         train_outs = torch.cat(train_outs).numpy()
         train_targets = torch.cat(train_targets).numpy()
         train_acc = ((train_outs >= 0.5) == train_targets).mean()
+        if valid_acc > best_valid_acc:
+            best_valid_acc = valid_acc
+            torch.save(neurostock, config["gnn_model"]["best_model_save_path"])  # Save the best model weights
+    
         wandb.log({
                 "train_loss" : np.mean(train_losses),
                 "valid_loss" : np.mean(valid_losses),
@@ -75,5 +84,5 @@ def train_model(train_loader, test_loader, config):
 
     wandb.finish()
     
-    torch.save(neurostock, config["gnn_model"]["model_save_path"])
+    torch.save(neurostock, config["gnn_model"]["last_model_save_path"])
     return neurostock
