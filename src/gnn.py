@@ -112,7 +112,7 @@ class NeuroStock(nn.Module):
         if self.lstm:
             self.lstm = LSTM(input_size=num_timeseries_features, hidden_size=company_emb_size, output_size=company_emb_size).to(torch.float)
         else:
-            self.transformer = HistoricalTransformer(hidden_size=15, d_k=15, d_v=15, n_heads=1, ff_dim=256, num_timeseries_features = self.num_timeseries_features, output_size =company_emb_size).to(torch.float)
+            self.transformer = HistoricalTransformer(seq_len=15, d_k=15, d_v=15, n_heads=1, ff_dim=256, num_timeseries_features = self.num_timeseries_features, output_size =company_emb_size).to(torch.float)
 
         if graph_metadata is None:
             raise("You need to pass HeteroData.metadata()")
