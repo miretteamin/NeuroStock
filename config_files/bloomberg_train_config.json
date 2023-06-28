@@ -1,0 +1,23 @@
+{
+    "n_epochs" : 100,
+    "node_emb_size" : 128,
+    "lr" : 0.001,
+    "weight_decay" : 0.01,
+    "step_size" : 7,
+    "start_day" : 500,
+    "train_size" : 600,
+    "test_interval" : 100,
+    "train_batch_size": 4,
+    "use_timeseries_only": true,
+    "reset_parameters" : false,
+    "reset_parameters_freq" : 5,
+    "gnn_msg_aggr": "gin", 
+    "highest_conf_k" : 100,
+    "model_file_name" : "./neurostock_lstm.pt",
+    "run_name" : "lstm_companies_k100",
+    "project_name":  "bloomberg_graph_simple_train",
+    "wandb_mode" : "online",
+    "gp_train_days" : 100,
+    "gp_val_days" : 20,
+    "gp_epochs" : 40
+  }
