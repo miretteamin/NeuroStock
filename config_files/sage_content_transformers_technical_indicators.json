@@ -1,0 +1,47 @@
+{
+    "data": {
+        "nasdaq_screener_path": "../../data/trained_files/nasdaq_screener.csv",
+        "processed_news_df_path": "../../data/trained_files/processed_news_df.csv",
+        "processed_stock_df_path": "../../data/trained_files/processed_stock_df.csv",
+        "train_percentage": 0.7,
+        "batch_size": 8
+    },
+
+    "graphs": {
+        "news_vectors_path": "../../data/weights/news_vectors_sota.pt",
+        "graph_path": "../../data/graphs/graph_dataset_technical_indicators",
+        "news_part": "title",
+        "news_emb_model": "finbert"
+    },
+    
+    "gnn_model": {
+            "best_model_save_path": "../../data/saved_models/gnn_content_transformers_technical_indicators/best.pth", 
+            "last_model_save_path": "../../data/saved_models/gnn_content_transformers_technical_indicators/last.pth",
+            "type": "sage",
+            "n_epochs": 50, 
+            "num_timeseries_features": 5,
+            "n_companies": 310,
+            "node_emb_size": 128,
+            "company_emb_size": 64, 
+            "article_emb_size": 768,
+            "n_industries": 14,
+            "n_gnn_layers": 3,
+            "lstm": false,
+            "use_timeseries_only": false, 
+            "lr": 0.0001, 
+            "weight_decay": 0.01, 
+            "start_day": 500, 
+            "train_size": 300, 
+            "test_interval": 400, 
+            "train_batch_size": 4, 
+            "reset_parameters": false, 
+            "reset_parameters_freq": 5, 
+            "highest_conf_k": 100
+        }, 
+
+        "wandb": {
+            "project": "test_sage", 
+            "run_name": "gnn_content_transformers_technical_indicators", 
+            "mode": "online"
+            }
+} 

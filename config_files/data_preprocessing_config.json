@@ -1,0 +1,12 @@
+{
+    "trained_ner": "../../data/trained_files/trained_ner",
+    "companies_names": "../../data/trained_files/json/companies_names.json",
+    "companies_symbols": "../../data/trained_files/json/companies_symbol.json",
+    "updated_names": "../../data/trained_files/json/updated_names.json",
+    "companies": "../../data/trained_files/json/companies.json",
+    "nasdaq_stocks": "../../data/d_us_txt/data/daily/us/nasdaq stocks",
+    "news_dataset": "../../data/news/us_equities_news_dataset.csv",
+    "nasdaq_screener": "../../data/trained_files/nasdaq_screener.csv",
+    "processed_news_df": "../../data/trained_files/processed_news_df.csv",
+    "processed_stock_df": "../../data/trained_files/processed_stock_df.csv"
+}
