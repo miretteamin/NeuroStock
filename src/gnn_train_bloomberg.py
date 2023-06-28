@@ -23,7 +23,7 @@ with open("../config_files/bloomberg_train_config.json", "r") as f:
 
 all_points = []
 for i in range(1,4):
-  dataset = DayGraphs(f"./drive/MyDrive/bloomberg_graph_std_trick{i}")
+  dataset = DayGraphs(f"{train_config["bloomberg_graph_path"]}/bloomberg_graph_{i}")
   for k in range(len(dataset)):
     all_points.append(dataset[k])
 

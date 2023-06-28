@@ -13,6 +13,7 @@
     "reset_parameters_freq" : 5,
     "gnn_msg_aggr": "gin", 
     "highest_conf_k" : 100,
+    "bloomberg_graph_path" : "../../data/bloomberg",
     "model_file_name" : "./neurostock_lstm.pt",
     "run_name" : "lstm_companies_k100",
     "project_name":  "bloomberg_graph_simple_train",
