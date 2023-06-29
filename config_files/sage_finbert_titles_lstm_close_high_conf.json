@@ -1,25 +1,25 @@
 {
     "data": {
         "dataset": "us_equities",
-        "nasdaq_screener_path": "../../data/trained_files/nasdaq_screener.csv",
-        "processed_news_df_path": "../../data/trained_files/processed_news_df.csv",
-        "processed_stock_df_path": "../../data/trained_files/processed_stock_df.csv",
+        "nasdaq_screener_path": "../data/trained_files/nasdaq_screener.csv",
+        "processed_news_df_path": "../data/trained_files/processed_news_df.csv",
+        "processed_stock_df_path": "../data/trained_files/processed_stock_df.csv",
         "train_percentage": 0.7,
         "batch_size": 8
     },
 
     "graphs": {
-        "news_vectors_path": "../../data/weights/news_vectors_finbert_titles.pt",
-        "graph_path": "../../data/graphs/graph_finbert_titles_lstm_close",
+        "news_vectors_path": "../data/weights/news_vectors_finbert_titles.pt",
+        "graph_path": "../data/graphs/graph_finbert_titles_lstm_close",
         "news_part": "title",
         "news_emb_model": "finbert"
     }, 
 
     "gnn_model": {
-            "best_model_save_path": "../../data/saved_models/sage_finbert_titles_lstm_close/best.pth", 
-            "last_model_save_path": "../../data/saved_models/sage_finbert_titles_lstm_close/last.pth",
+            "best_model_save_path": "../data/saved_models/sage_finbert_titles_lstm_close_high_conf/best.pth", 
+            "last_model_save_path": "../data/saved_models/sage_finbert_titles_lstm_close_high_conf/last.pth",
             "type": "sage",
-            "n_epochs": 50, 
+            "n_epochs": 100, 
             "num_timeseries_features": 1,
             "n_companies": 310,
             "node_emb_size": 128,
@@ -29,19 +29,20 @@
             "n_gnn_layers": 3,
             "lstm": true,
             "use_timeseries_only": false, 
-            "lr": 0.0001, 
+            "lr": 0.001, 
             "weight_decay": 0.01, 
-            "start_day": 500, 
-            "train_size": 300, 
-            "test_interval": 400, 
+            "start_day": 0, 
+            "train_size": 900, 
+            "test_interval": 200, 
             "train_batch_size": 4, 
+            "use_test_set" : true,
             "reset_parameters": false, 
             "reset_parameters_freq": 5, 
             "highest_conf_k": 100
         }, 
 
         "wandb": {
-            "project": "test_sage", 
+            "project": "test_sage_high_conf", 
             "run_name": "gnn_finbert_titles_lstm_close", 
             "mode": "online"
             }

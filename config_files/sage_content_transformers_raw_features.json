@@ -1,5 +1,6 @@
 {
     "data": {
+        "dataset": "us_equities",
         "nasdaq_screener_path": "../../data/trained_files/nasdaq_screener.csv",
         "processed_news_df_path": "../../data/trained_files/processed_news_df.csv",
         "processed_stock_df_path": "../../data/trained_files/processed_stock_df.csv",
