@@ -2,7 +2,7 @@ import torch
 from tqdm import tqdm
 from typing import List
 import json
-import numpy as np
+from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, AutoModel
 
 from torch_geometric.data import DataLoader
