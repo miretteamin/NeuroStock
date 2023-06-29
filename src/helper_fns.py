@@ -2,7 +2,7 @@ import torch
 from tqdm import tqdm
 from typing import List
 import json
-import numpy as np
+from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, AutoModel
 
 
@@ -52,3 +52,9 @@ def news_emb_model(type="finbert"):
         tokenizer = AutoTokenizer.from_pretrained("Sigma/financial-sentiment-analysis")
         model = AutoModel.from_pretrained("Sigma/financial-sentiment-analysis")
         return model, tokenizer
+    
+def split_train_test(graphs, batch_size=8, train_percentage=0.7):
+    train = graphs[:int(train_percentage*len(graphs))]
+    test = graphs[:int(len(graphs) - (train_percentage*len(graphs)))]
+    print(len(train),len(test))
+    return DataLoader(train, batch_size), DataLoader(test, batch_size, shuffle=False)
