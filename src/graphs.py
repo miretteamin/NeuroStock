@@ -11,34 +11,9 @@ from torch_geometric.data  import InMemoryDataset
 import numpy as np
 import pandas as pd
 
-from helper_fns import get_article_vectors, news_emb_model
+from .helper_fns import get_article_vectors, news_emb_model
 
-
-class DayGraphsCreation(InMemoryDataset):
-    def __init__(self, root, data_list, transform=None):
-        self.data_list = data_list
-        #print(len(self.data_list))
-        super().__init__(root, transform)
-        self.data, self.slices = torch.load(self.processed_paths[0])
-        #self.process()
-
-    @property
-    def processed_file_names(self):
-        return 'data.pt'
-    
-    def process(self):
-        torch.save(self.collate(self.data_list), self.processed_paths[0])
-
-
-class DayGraphs(InMemoryDataset):
-    def __init__(self, root, transform=None):
-        super().__init__(root, transform)
-        self.data, self.slices = torch.load(self.processed_paths[0])
-
-    @property
-    def processed_file_names(self):
-        return 'data.pt'
-    
+from .day_graphs import DayGraphsCreation
 
 def save_news_vectors(config):
     news_df = pd.read_csv(config["data"]["processed_news_df_path"])

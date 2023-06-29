@@ -4,7 +4,7 @@ from torch_geometric.utils import (
     remove_self_loops ,
 )
 
-from transformer import HistoricalTransformer
+from .transformer import HistoricalTransformer
 import torch.nn.functional as F
 from sklearn.metrics import accuracy_score,roc_auc_score,average_precision_score
 from sklearn.metrics import precision_score
@@ -38,7 +38,7 @@ np.random.seed(232)
 torch.cuda.manual_seed(232)
 torch.cuda.manual_seed_all(232)
 random.seed(232)
-from lstm import LSTM
+from .lstm import LSTM
 
 class GConv(nn.Module):
 
@@ -140,7 +140,10 @@ class NeuroStock(nn.Module):
         
         hetero_x["article"].x = self.project_article(hetero_x["article"].x)
         companies = self.company_embedding(hetero_x["company"].x)
-
+        
+        for k in hetero_x.edge_index_dict.keys():
+            hetero_x[k].edge_index = hetero_x[k].edge_index.to(torch.int64)
+        
         # print(hetero_x["company_timeseries"][:,:, -2:-1].to(torch.double).shape, hetero_x["company_timeseries"][:,:, -2:-1].to(torch.float).dtype)
         # company_timeseries is of shape (n_companies*batch_size, n_days, n_features)  the features are "open", "high", "low", "close", "volume"
         
@@ -154,3 +157,38 @@ class NeuroStock(nn.Module):
     def compute_loss(self, out, target):
         loss = F.binary_cross_entropy(out.reshape(-1), target.float())
         return loss
+    
+class NeuroStockMultiClass(NeuroStock):
+
+    def __init__(self, num_timeseries_features=1, n_companies=310, company_emb_size=32, node_emb_size=64, article_emb_size=768, n_industries=14, n_gnn_layers=3, type='sage', use_timeseries_only: bool = False, lstm: bool = True, graph_metadata: Tuple = None):
+        super().__init__(num_timeseries_features, n_companies, company_emb_size, node_emb_size, article_emb_size, n_industries, n_gnn_layers, type, use_timeseries_only, lstm, graph_metadata)
+        self.classifier = nn.Sequential(nn.Dropout(0.2),nn.Linear(node_emb_size, 2)).to(torch.float)
+    
+    def forward(self, hetero_x: HeteroData):
+        if self.lstm:
+            companies_timeseries = self.lstm(hetero_x["company_timeseries"][:,:, -2:-1].to(torch.float))
+        else:
+            companies_timeseries = self.transformer(hetero_x["company_timeseries"][:,:,0:self.num_timeseries_features].to(torch.float))
+
+        if self.use_timeseries_only:
+            out = self.classifier(companies_timeseries)
+            return out
+        
+        hetero_x["article"].x = self.project_article(hetero_x["article"].x)
+        companies = self.company_embedding(hetero_x["company"].x)
+        
+        for k in hetero_x.edge_index_dict.keys():
+            hetero_x[k].edge_index = hetero_x[k].edge_index.to(torch.int64)
+        
+        # print(hetero_x["company_timeseries"][:,:, -2:-1].to(torch.double).shape, hetero_x["company_timeseries"][:,:, -2:-1].to(torch.float).dtype)
+        # company_timeseries is of shape (n_companies*batch_size, n_days, n_features)  the features are "open", "high", "low", "close", "volume"
+        
+        hetero_x["company"].x = torch.cat((companies_timeseries, companies), dim=-1)  #companies are in shape (n_companies*batch_size, node_emb_size)
+        # hetero_x["company"].x = companies_timeseries + companies
+        hetero_x["industry"].x = self.industry_embedding(hetero_x["industry"].x)
+        graph = self.g_conv(hetero_x.x_dict, hetero_x.edge_index_dict)
+        out = self.classifier(graph["company"])
+        return out
+    
+    def compute_loss(self, out, target):
+        return F.cross_entropy(out, target)

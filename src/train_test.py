@@ -1,4 +1,4 @@
-from gnn import NeuroStock
+from .gnn import NeuroStock
 import torch
 from tqdm.notebook  import tqdm
 import numpy as np
@@ -82,6 +82,7 @@ def train_model(train_loader, test_loader, config):
                 "train_acc" : train_acc
         })
 
+    wandb.save(config['gnn_model']["best_model_save_path"])
     wandb.finish()
     
     torch.save(neurostock, config["gnn_model"]["last_model_save_path"])

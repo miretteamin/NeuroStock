@@ -121,7 +121,7 @@ class GConv(nn.Module):
 
 
 
-class NeuroStock(nn.Module):
+class NeuroStockBloom(nn.Module):
 
   def __init__(self,
                num_timeseries_features=1,
@@ -134,7 +134,7 @@ class NeuroStock(nn.Module):
                gnn_msg_aggr="gin",
                use_timeseries_only=False,
                graph_metadata:Tuple=None):
-    super(NeuroStock, self).__init__()
+    super(NeuroStockBloom, self).__init__()
     """
     company node representation will be a sum of its embedding and the output of the timeseries model (in this case it's an LSTM)
     """
@@ -186,11 +186,12 @@ class NeuroStock(nn.Module):
     return loss
 
 
-def get_output(neurostock:NeuroStock, points:List[HeteroData]):
+def get_output(neurostock:NeuroStockBloom, points:List[HeteroData]):
   data_loader = GraphDataLoader(
                 points,
                 batch_size=1, shuffle=False)
   neurostock.eval()
+  device = next(neurostock.parameters()).device
   valid_losses = []
   # continue
   valid_outs = []
@@ -211,7 +212,7 @@ def get_output(neurostock:NeuroStock, points:List[HeteroData]):
   valid_targets = torch.cat(valid_targets).numpy()
   return valid_outs, valid_targets
 
-def get_output_representations(neurostock:NeuroStock, points:List[HeteroData]):
+def get_output_representations(neurostock:NeuroStockBloom, points:List[HeteroData]):
   data_loader = GraphDataLoader(
                 points,
                 batch_size=1, shuffle=False)

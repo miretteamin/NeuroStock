@@ -5,7 +5,7 @@ import json
 import numpy as np
 from transformers import AutoTokenizer, AutoModel
 
-
+from torch_geometric.data import DataLoader
 def get_companies(article:str, ner)-> List[str]:
     doc = ner(article)
     results = []
@@ -52,3 +52,14 @@ def news_emb_model(type="finbert"):
         tokenizer = AutoTokenizer.from_pretrained("Sigma/financial-sentiment-analysis")
         model = AutoModel.from_pretrained("Sigma/financial-sentiment-analysis")
         return model, tokenizer
+    
+
+
+def split_train_test(graphs, train_percentage=0.7, batch_size=8):
+    
+    train = graphs[:int(train_percentage*len(graphs))]
+    test = graphs[int(train_percentage*len(graphs)):]
+    print(len(train),len(test))
+
+    # return Train Dataloader, Test Dataloader
+    return DataLoader(train, batch_size=batch_size), DataLoader(test, batch_size=batch_size, shuffle=False)
