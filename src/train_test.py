@@ -1,9 +1,11 @@
-from .gnn import NeuroStock
+import sys
+import os
+from gnn import NeuroStock
 import torch
 from tqdm.notebook  import tqdm
 import numpy as np
 import wandb
-import os
+from sklearn.metrics import precision_score, f1_score
 
 def train_model(train_loader, test_loader, config):
 
@@ -82,7 +84,7 @@ def train_model(train_loader, test_loader, config):
                 "train_acc" : train_acc
         })
 
-    wandb.save(config['gnn_model']["best_model_save_path"])
+    # wandb.save(config['gnn_model']["best_model_save_path"])
     wandb.finish()
     
     torch.save(neurostock, config["gnn_model"]["last_model_save_path"])

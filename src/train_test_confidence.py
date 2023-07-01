@@ -1,28 +1,78 @@
 import wandb
 
 from tqdm import tqdm
-from .bloomberg_model import  NeuroStockBloom
-from .gnn import NeuroStockMultiClass 
-from .bloomberg_model import get_output
+from bloomberg_model import  NeuroStockBloom
+from gnn import NeuroStockMultiClass 
+from bloomberg_model import get_output
 from torch_geometric.data import DataLoader as GraphDataLoader
-from .day_graphs import DayGraphs
-
+from day_graphs import DayGraphs
+from sklearn.metrics import precision_score, f1_score, recall_score
 import torch
+from typing import Dict
+from typing import Any
 import numpy as np
+import os
 
+def get_model_metrics(neurostock: NeuroStockBloom, test_loader:GraphDataLoader, train_config:Dict[str,Any])-> Dict[str, float]:
+    valid_losses = []
+    # continue
+    device = next(neurostock.parameters()).device
 
+    valid_outs = []
+    valid_targets = []
+    with torch.no_grad():
+
+        for i, batch  in enumerate(test_loader):
+            batch = batch.to(device)
+            out = neurostock(batch)
+            valid_outs.append(out.cpu().detach().unsqueeze(0))
+            valid_targets.append(batch[train_config["gnn_model"]["target_name"]].cpu().detach().unsqueeze(0))
+            loss = neurostock.compute_loss(out, batch[train_config["gnn_model"]["target_name"]])
+            valid_losses.append(loss.item())
+
+    valid_outs = torch.cat(valid_outs).numpy()
+    valid_targets = torch.cat(valid_targets).numpy()
+
+    valid_acc = (valid_outs.argmax(-1) == valid_targets).mean()
+    high_confidence_accs = []
+    precisions= []
+    biased_precision_high_conf = []
+    precisions_conf =[]
+    f1s_conf =[]
+    f1s =[]
+    for out, target in zip(valid_outs, valid_targets):
+        predicted_label = out.argmax(-1)
+        confidence = out.max(-1)
+        increased_pred_conf = confidence[predicted_label == 1]
+        increased_target = target[predicted_label == 1]
+        increased_target = increased_target[increased_pred_conf.argsort()[-train_config['gnn_model']["highest_conf_increased_k"]:]]
+        predicted_label = predicted_label[confidence.argsort()[-train_config['gnn_model']["highest_conf_k"]:]]
+        high_conf_target = target[confidence.argsort()[-train_config['gnn_model']["highest_conf_k"]:]]
+        high_confidence_accs.append((high_conf_target == predicted_label).mean())
+        biased_precision_high_conf.append(precision_score(increased_target, np.ones_like(increased_target)))
+
+        precisions.append(precision_score(target, out.argmax(-1)))
+        f1s.append(f1_score(target, out.argmax(-1)))
+        precisions_conf.append(precision_score(high_conf_target, predicted_label))
+        f1s_conf.append(f1_score(high_conf_target, predicted_label))
+
+    return {
+        "valid_loss" : np.mean(valid_losses),
+        "valid_acc" : valid_acc,
+        "high_confidence_acc" : np.mean(high_confidence_accs),
+        "biased_precision_high_conf" : np.mean(biased_precision_high_conf),
+        "precision" : np.mean(precisions),
+        "precision_high_conf" : np.mean(precisions_conf),
+        "f1" : np.mean(f1s),
+        "f1_high_conf" : np.mean(f1s_conf),
+    }
+     
 def train_model(train_config):
 
     all_points = []
-    if train_config["data"]["dataset"] == "bloomberg":    
-        for i in range(1,4):
-            dataset = DayGraphs(f"{train_config['graphs']['bloomberg_graph_path']}/bloomberg_graph_{i}")
-            for k in range(len(dataset)):
-                all_points.append(dataset[k])
-    else :
-        dataset = DayGraphs(train_config['graphs']['graph_path'])
-        for k in range(len(dataset)):
-            all_points.append(dataset[k])
+    dataset = DayGraphs(train_config['graphs']['graph_path'])
+    for k in range(len(dataset)):
+        all_points.append(dataset[k])
 
     wandb.finish()
     wandb.init(
@@ -60,7 +110,8 @@ def train_model(train_config):
         all_points[train_config['gnn_model']["start_day"]+train_config['gnn_model']["train_size"]:train_config['gnn_model']["start_day"]+train_config['gnn_model']["train_size"]+train_config['gnn_model']["test_interval"]],
         batch_size=1, shuffle=False)
     
-    best_val_acc = 0
+    best_val_metric = 0
+    best_val_metrics = {}
     for e in tqdm(range(train_config['gnn_model']["n_epochs"])):
         train_losses= []
         neurostock.train()
@@ -72,8 +123,8 @@ def train_model(train_config):
             batch = batch.to(device)
             out = neurostock(batch)
             train_outs.append(out.cpu().detach().unsqueeze(0))
-            train_targets.append(batch["target"].cpu().detach().unsqueeze(0))
-            loss = neurostock.compute_loss(out, batch["target"])
+            train_targets.append(batch[train_config["gnn_model"]["target_name"]].cpu().detach().unsqueeze(0))
+            loss = neurostock.compute_loss(out, batch[train_config["gnn_model"]["target_name"]])
             optimizer.zero_grad()
             train_losses.append(loss.item())
             loss.backward()
@@ -81,66 +132,53 @@ def train_model(train_config):
             # lr_scheduler.step()
 
         neurostock.eval()
-        valid_losses = []
-        # continue
-        valid_outs = []
-        valid_targets = []
-        with torch.no_grad():
-
-            for i, batch  in enumerate(test_loader):
-                batch = batch.to(device)
-                out = neurostock(batch)
-                valid_outs.append(out.cpu().detach().unsqueeze(0))
-                valid_targets.append(batch["target"].cpu().detach().unsqueeze(0))
-                loss = neurostock.compute_loss(out, batch["target"])
-                valid_losses.append(loss.item())
-
-        valid_outs = torch.cat(valid_outs).numpy()
-        valid_targets = torch.cat(valid_targets).numpy()
-
-        valid_acc = (valid_outs.argmax(-1) == valid_targets).mean()
         train_outs = torch.cat(train_outs).numpy()
         train_targets = torch.cat(train_targets).numpy()
         train_acc = (train_outs.argmax(-1) == train_targets).mean()
-        high_confidence_accs = []
-        for out, target in zip(valid_outs, valid_targets):
-            predicted_label = out.argmax(-1)
-            confidence = out.max(-1)
-            predicted_label = predicted_label[confidence.argsort()[-train_config['gnn_model']["highest_conf_k"]:]]
-            target = target[confidence.argsort()[-train_config['gnn_model']["highest_conf_k"]:]]
-            high_confidence_accs.append((target ==predicted_label).mean())
-
-        wandb.log({
-            "train_loss" : np.mean(train_losses),
-            "valid_loss" : np.mean(valid_losses),
-            "valid_acc" : valid_acc,
-            "high_confidence_acc" : np.mean(high_confidence_accs),
-            "train_acc" : train_acc,
-        })
-        if np.mean(high_confidence_accs) > best_val_acc :
-            best_val_acc = np.mean(high_confidence_accs)
+        
+        metrics = get_model_metrics(neurostock, test_loader, train_config)
+        metrics["train_loss"] = np.mean(train_losses)
+        metrics["train_acc"] = train_acc
+        wandb.log(metrics)
+        if metrics["precision"] > best_val_metric :
+            best_val_metric = metrics["precision"]
+            best_val_metrics = metrics
+            os.makedirs("/".join(train_config['gnn_model']["best_model_save_path"].split("/")[:-1]), exist_ok=True)
             torch.save(neurostock, train_config['gnn_model']["best_model_save_path"])
 
-    if  "use_test_set" in train_config["gnn_model"].keys():
-        if train_config["gnn_model"]["use_test_set"]:
-            neurostock = torch.load(train_config['gnn_model']["best_model_save_path"])
-            long_range_outputs, long_range_true = get_output(neurostock, all_points[train_config['gnn_model']["start_day"]+train_config['gnn_model']["train_size"]+train_config['gnn_model']["test_interval"]:])
+    # if  "use_test_set" in train_config["gnn_model"].keys():
+    #     if train_config["gnn_model"]["use_test_set"]:
+    #         neurostock = torch.load(train_config['gnn_model']["best_model_save_path"])
+    #         long_range_outputs, long_range_true = get_output(neurostock, all_points[train_config['gnn_model']["start_day"]+train_config['gnn_model']["train_size"]+train_config['gnn_model']["test_interval"]:], target_name=train_config["gnn_model"]["target_name"])
+    #         high_confidence_accs = []
+    #         precisions = []
+    #         precisions_conf = []
+    #         f1s_conf =[]
+    #         f1s =[]
+    #         for out, target in zip(long_range_outputs, long_range_true):
+    #             predicted_label = out.argmax(-1)
+    #             confidence = out.max(-1)
+    #             predicted_label = predicted_label[confidence.argsort()[-train_config['gnn_model']["highest_conf_k"]:]]
+    #             high_conf_target = target[confidence.argsort()[-train_config['gnn_model']["highest_conf_k"]:]]
+    #             high_confidence_accs.append((high_conf_target == predicted_label).mean())
+    #             precisions.append(precision_score(target, out.argmax(-1)))
+    #             f1s.append(f1_score(target, out.argmax(-1)))
+    #             precisions_conf.append(precision_score(high_conf_target, predicted_label))
+    #             f1s_conf.append(f1_score(high_conf_target, predicted_label))
 
-            for out, target in zip(long_range_outputs, long_range_true):
-                predicted_label = out.argmax(-1)
-                confidence = out.max(-1)
-                predicted_label = predicted_label[confidence.argsort()[-train_config['gnn_model']["highest_conf_k"]:]]
-                target = target[confidence.argsort()[-train_config['gnn_model']["highest_conf_k"]:]]
-                high_confidence_accs.append((target ==predicted_label).mean())
-
-            wandb.log({
-                    "long_range_acc" : (long_range_outputs.argmax(-1) == long_range_true).mean(),
-                    "long_range_conf_ac" : np.mean(high_confidence_accs),
-                    })
-    wandb.log({"best_val_acc": best_val_acc})
+    #         wandb.log({
+    #                 "long_range_acc" : (long_range_outputs.argmax(-1) == long_range_true).mean(),
+    #                 "long_range_conf_ac" : np.mean(high_confidence_accs),
+    #                 "long_range_precision" : np.mean(precisions),
+    #                 "long_range_precision_high_conf" : np.mean(precisions_conf),
+    #                 "long_range_f1" : np.mean(f1s),
+    #                 "long_range_f1_high_conf" : np.mean(f1s_conf),
+    #                 })
+            
+    wandb.log({"final_"+k : v for k,v in best_val_metrics.items()})
 
     torch.save(neurostock, train_config['gnn_model']["best_model_save_path"])
-    wandb.save(train_config['gnn_model']["best_model_save_path"])
+    # wandb.save(train_config['gnn_model']["best_model_save_path"])
     # wandb.save("./best_gp.pt")
     # wandb.save("./best_likelihoood.pt")
 

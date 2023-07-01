@@ -9,7 +9,7 @@ from datetime import timedelta
 import numpy as np
 from tqdm import tqdm
 from tqdm import tqdm
-from ..day_graphs import DayGraphs_Creation
+from day_graphs import DayGraphs_Creation
 import json
 
 with open("../config_files/bloomberg_creation_config.json", 'r') as f:

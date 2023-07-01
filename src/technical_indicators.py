@@ -43,5 +43,5 @@ def simple_moving_average_indicator(stock_history:pd.DataFrame, window:int):
 # stock_df
 # stock_df = pd.read_csv("/content/drive/MyDrive/Stock Market Prediction Graduation/processed_stock_df.csv")
 # stock_df.sort_values(by=['symbol', 'dateOfPrice'], inplace=True)
-# stock_df = RSI_indicator(stock_df, 4)
+# stock_df = rsi_indicator(stock_df, 4)
 # stock_df

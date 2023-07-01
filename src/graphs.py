@@ -11,9 +11,9 @@ from torch_geometric.data  import InMemoryDataset
 import numpy as np
 import pandas as pd
 
-from .helper_fns import get_article_vectors, news_emb_model
+from helper_fns import get_article_vectors, news_emb_model
 
-from .day_graphs import DayGraphsCreation
+from day_graphs import DayGraphsCreation
 
 def save_news_vectors(config):
     news_df = pd.read_csv(config["data"]["processed_news_df_path"])

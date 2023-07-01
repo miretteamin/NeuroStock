@@ -94,9 +94,9 @@ class GConv(nn.Module):
               self.gconv_layers.append(gnn.GINConv(nn.Sequential(nn.Linear(emb_dim, emb_dim), nn.PReLU())).to(device)) # project=True ()
             if msg_agg=="sage":
               self.gconv_layers.append(gnn.SAGEConv(emb_dim, emb_dim, aggr=["mean", "max"], project=True).to(device)) # project=True ()
-
             if self.encode:
                 self.norm_layers.append(nn.LayerNorm(emb_dim).to(device))
+                
         self.gconv_layers = nn.ModuleList(self.gconv_layers)
         self.norm_layers = nn.ModuleList(self.norm_layers)
 
@@ -186,7 +186,7 @@ class NeuroStockBloom(nn.Module):
     return loss
 
 
-def get_output(neurostock:NeuroStockBloom, points:List[HeteroData]):
+def get_output(neurostock:NeuroStockBloom, points:List[HeteroData], target_name="target"):
   data_loader = GraphDataLoader(
                 points,
                 batch_size=1, shuffle=False)
@@ -205,8 +205,8 @@ def get_output(neurostock:NeuroStockBloom, points:List[HeteroData]):
         # print(batch["target"].shape)
         # break
         valid_outs.append(out.unsqueeze(0).cpu().detach())
-        valid_targets.append(batch["target"].unsqueeze(0).cpu().detach())
-        loss = neurostock.compute_loss(out, batch["target"])
+        valid_targets.append(batch[target_name].unsqueeze(0).cpu().detach())
+        loss = neurostock.compute_loss(out, batch[target_name])
         valid_losses.append(loss.item())
   valid_outs = torch.cat(valid_outs).numpy()
   valid_targets = torch.cat(valid_targets).numpy()

@@ -4,7 +4,7 @@ from torch_geometric.utils import (
     remove_self_loops ,
 )
 
-from .transformer import HistoricalTransformer
+from transformer import HistoricalTransformer
 import torch.nn.functional as F
 from sklearn.metrics import accuracy_score,roc_auc_score,average_precision_score
 from sklearn.metrics import precision_score
@@ -38,7 +38,7 @@ np.random.seed(232)
 torch.cuda.manual_seed(232)
 torch.cuda.manual_seed_all(232)
 random.seed(232)
-from .lstm import LSTM
+from lstm import LSTM
 
 class GConv(nn.Module):
 
@@ -50,13 +50,17 @@ class GConv(nn.Module):
         self.norm_layers = []
         self.encode = encode
         for _ in range(num_layers):
-            if type == 'sage':
-                self.gconv_layers.append(gnn.SAGEConv(emb_dim, emb_dim, dropout=dropout, project=True).to(device)) # project=True ()
-            elif type == 'gat':
-                self.gconv_layers.append(gnn.GATConv(emb_dim, emb_dim, dropout=dropout, project=True, add_self_loops = False).to(device)) # project=True ()
+            if type=="transformer":
+              self.gconv_layers.append(gnn.TransformerConv(emb_dim, emb_dim, heads=2, concat=False, dropout=dropout, add_self_loops = True).to(device)) # project=True ()
+            if type=="gat":
+              self.gconv_layers.append(gnn.GATConv(emb_dim, emb_dim, dropout=dropout, add_self_loops=False).to(device)) # project=True ()
+            if type=="gin":
+              self.gconv_layers.append(gnn.GINConv(nn.Sequential(nn.Linear(emb_dim, emb_dim), nn.PReLU())).to(device)) # project=True ()
+            if type=="sage":
+              self.gconv_layers.append(gnn.SAGEConv(emb_dim, emb_dim, aggr=["mean", "max"], project=True).to(device)) # project=True ()
 
             if self.encode:
-                self.norm_layers.append(nn.LayerNorm(emb_dim).to(device))
+                self.norm_layers.append(nn.LayerNorm(emb_dim).to(device)) 
         self.gconv_layers = nn.ModuleList(self.gconv_layers)
         self.norm_layers = nn.ModuleList(self.norm_layers)
 
