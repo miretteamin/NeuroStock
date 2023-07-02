@@ -1,0 +1,43 @@
+{
+    "data": {
+        "dataset": "bloomberg",
+        "nasdaq_screener_path": "../../data/trained_files/nasdaq_screener.csv",
+        "processed_news_df_path": "../../data/trained_files/processed_news_df.csv",
+        "processed_stock_df_path": "../../data/trained_files/processed_stock_df.csv"
+    },
+
+    "graphs": {
+        "stocks_path": "../../data/d_us_txt",
+        "graph_path" : "../../data/bloomberg_files/bloomberg_graph_std_trick"
+    }, 
+
+    "gnn_model": {
+        "use_test_set": false,
+        "all_days" : 1767,
+        "best_model_save_path": "../../data/saved_models/bloomberg_sage_title_lstm_close_std_target/best.pth", 
+        "type": "sage",
+        "n_epochs" : 55,
+        "num_timeseries_features": 1,
+        "n_companies": 616,
+        "node_emb_size" : 128,
+        "lr" : 0.001,
+        "weight_decay" : 0.01,
+        "start_day" : 800,
+        "train_size" : 748,
+        "highest_conf_increased_k" : 20, 
+        "test_interval" : 117,
+        "train_batch_size": 4,
+        "use_timeseries_only": false,
+        "reset_parameters" : false,
+        "reset_parameters_freq" : 5,
+        "gnn_msg_aggr": "sage", 
+        "highest_conf_k" : 200,
+        "target_name" : "target_std"
+        }, 
+
+    "wandb": {
+        "project": "bloomberg", 
+        "run_name": "bloomberg_sage_title_lstm_close_std_target", 
+        "mode": "online"
+        }
+} 

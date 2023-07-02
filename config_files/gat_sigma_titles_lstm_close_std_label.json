@@ -8,7 +8,7 @@
     },
 
     "graphs": {
-        "news_vectors_path": "../../data/weights/news_vectors_sigma.pt",
+        "news_vectors_path": "../../data/weights/news_vectors_sigma_titles.pt",
         "graph_path": "../../data/graphs/graphs_sigma_titles_us_equities_std_label",
         "news_part": "content",
         "news_emb_model": "sigma"
