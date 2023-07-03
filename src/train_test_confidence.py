@@ -85,7 +85,7 @@ def train_model(config):
         neurostock = NeuroStockBloom(
             node_emb_size=config['gnn_model']["node_emb_size"],
             company_emb_size=config['gnn_model']["node_emb_size"],
-            gnn_msg_aggr=config['gnn_model']["gnn_msg_aggr"],
+            type=config['gnn_model']["type"],
             use_timeseries_only=config['gnn_model']["use_timeseries_only"],
             graph_metadata=all_points[0].metadata())
     else:
@@ -142,17 +142,18 @@ def train_model(config):
         metrics = get_model_metrics(neurostock, test_loader, config)
         metrics["train_loss"] = np.mean(train_losses)
         metrics["train_acc"] = train_acc
+        if "std" in config["gnn_model"]["target_name"]:
+            eval_metric_name = "precision"
+        else:
+            eval_metric_name = "valid_acc" 
         wandb.log(metrics)
-        if metrics["precision"] > best_val_metric :
-            best_val_metric = metrics["precision"]
+        if metrics[eval_metric_name] > best_val_metric :
+            best_val_metric = metrics[eval_metric_name]
             best_val_metrics = metrics
             os.makedirs("/".join(config['gnn_model']["best_model_save_path"].split("/")[:-1]), exist_ok=True)
             torch.save(neurostock, config['gnn_model']["best_model_save_path"])
 
     wandb.log({"final_"+k : v for k,v in best_val_metrics.items()})
-
-    torch.save(neurostock, config['gnn_model']["best_model_save_path"])
-
-    
+    neurostock = torch.load(config['gnn_model']["best_model_save_path"])
     wandb.finish()
-    return neurostock
+    return neurostock, test_loader

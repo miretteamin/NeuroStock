@@ -78,7 +78,7 @@ class LSTM(nn.Module):
 
 class GConv(nn.Module):
 
-    def __init__(self, emb_dim:int=64, num_layers:int=2, encode:bool=False, concat_out:bool=False, msg_agg="gin", device='cpu', dropout=0.2):
+    def __init__(self, emb_dim:int=64, num_layers:int=2, encode:bool=False, concat_out:bool=False, type="gin", device='cpu', dropout=0.2):
 
         super(GConv,self).__init__()
         self.num_layers = num_layers
@@ -86,13 +86,13 @@ class GConv(nn.Module):
         self.norm_layers = []
         self.encode = encode
         for _ in range(num_layers):
-            if msg_agg=="transformer":
+            if type=="transformer":
               self.gconv_layers.append(gnn.TransformerConv(emb_dim, emb_dim, heads=2, concat=False, dropout=dropout, add_self_loops = True).to(device)) # project=True ()
-            if msg_agg=="gat":
+            if type=="gat":
               self.gconv_layers.append(gnn.GATConv(emb_dim, emb_dim, dropout=dropout, add_self_loops = True).to(device)) # project=True ()
-            if msg_agg=="gin":
+            if type=="gin":
               self.gconv_layers.append(gnn.GINConv(nn.Sequential(nn.Linear(emb_dim, emb_dim), nn.PReLU())).to(device)) # project=True ()
-            if msg_agg=="sage":
+            if type=="sage":
               self.gconv_layers.append(gnn.SAGEConv(emb_dim, emb_dim, aggr=["mean", "max"], project=True).to(device)) # project=True ()
             if self.encode:
                 self.norm_layers.append(nn.LayerNorm(emb_dim).to(device))
@@ -131,7 +131,7 @@ class NeuroStockBloom(nn.Module):
                article_emb_size=768,
                n_industries=14,
                n_gnn_layers=2,
-               gnn_msg_aggr="gin",
+               type="gin",
                use_timeseries_only=False,
                graph_metadata:Tuple=None):
     super(NeuroStockBloom, self).__init__()
@@ -144,7 +144,7 @@ class NeuroStockBloom(nn.Module):
     self.node_emb_size = node_emb_size
     self.article_emb_size = article_emb_size
     self.n_industries = n_industries
-    self.gnn_msg_aggr = gnn_msg_aggr
+    self.type = type
     self.n_gnn_layers = n_gnn_layers
     self.use_timeseries_only = use_timeseries_only
     self.lstm = LSTM(input_size=num_timeseries_features,  hidden_size=company_emb_size, output_size=company_emb_size).to(torch.float)
@@ -156,7 +156,7 @@ class NeuroStockBloom(nn.Module):
 
     # to_hetero transforms normal gnn aggregation layer to a heterogeneous aggregation layer
     # https://pytorch-geometric.readthedocs.io/en/latest/modules/nn.html#torch_geometric.nn.to_hetero_transformer.to_hetero
-    self.g_conv = gnn.to_hetero(GConv(emb_dim=node_emb_size, msg_agg=gnn_msg_aggr, num_layers=n_gnn_layers), graph_metadata).to(torch.float)
+    self.g_conv = gnn.to_hetero(GConv(emb_dim=node_emb_size, type=type, num_layers=n_gnn_layers), graph_metadata).to(torch.float)
     self.classifier = nn.Linear(node_emb_size, 2).to(torch.float)
 
   def forward(self, hetero_x:HeteroData, return_representations=False):
