@@ -156,4 +156,4 @@ def train_model(config):
     wandb.log({"final_"+k : v for k,v in best_val_metrics.items()})
     neurostock = torch.load(config['gnn_model']["best_model_save_path"])
     wandb.finish()
-    return neurostock, test_loader
+    return neurostock

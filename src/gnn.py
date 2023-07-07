@@ -168,7 +168,7 @@ class NeuroStockMultiClass(NeuroStock):
         super().__init__(num_timeseries_features, n_companies, company_emb_size, node_emb_size, article_emb_size, n_industries, n_gnn_layers, type, use_timeseries_only, lstm, graph_metadata)
         self.classifier = nn.Sequential(nn.Dropout(0.2),nn.Linear(node_emb_size, 2)).to(torch.float)
     
-    def forward(self, hetero_x: HeteroData):
+    def forward(self, hetero_x: HeteroData, return_representations=False):
         if self.lstm:
             companies_timeseries = self.lstm(hetero_x["company_timeseries"][:,:, -2:-1].to(torch.float))
         else:
@@ -192,6 +192,8 @@ class NeuroStockMultiClass(NeuroStock):
         hetero_x["industry"].x = self.industry_embedding(hetero_x["industry"].x)
         graph = self.g_conv(hetero_x.x_dict, hetero_x.edge_index_dict)
         out = self.classifier(graph["company"])
+        if return_representations:
+            return out, graph["company"]
         return out
     
     def compute_loss(self, out, target):
