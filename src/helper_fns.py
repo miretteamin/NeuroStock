@@ -13,6 +13,7 @@ def get_companies(article:str, ner)-> List[str]:
         results.append(ent.label_)
     return list((set(results)))
 
+#Get news node embedding 
 def get_article_vectors(text:List[str], model, tokenizer, device, type, batch_size=32, max_length=100)-> torch.Tensor:
     all_vectors = []
     with torch.no_grad():

@@ -124,7 +124,7 @@ def train_model(config):
             # with torch.autocast(device_type="cuda", dtype=torch.float16):
             # with torch.autocast(device_type="cuda", dtype=torch.float16):
             batch = batch.to(device)
-            out = neurostock(batch)
+            out = neurostock(batch) #.feedforward() --> object(data)
             train_outs.append(out.cpu().detach().unsqueeze(0))
             train_targets.append(batch[config["gnn_model"]["target_name"]].cpu().detach().unsqueeze(0))
             loss = neurostock.compute_loss(out, batch[config["gnn_model"]["target_name"]])
@@ -135,8 +135,8 @@ def train_model(config):
             # lr_scheduler.step()
 
         neurostock.eval()
-        train_outs = torch.cat(train_outs).numpy()
-        train_targets = torch.cat(train_targets).numpy()
+        train_outs = torch.cat(train_outs).numpy() #y_redivted
+        train_targets = torch.cat(train_targets).numpy() #y_actual
         train_acc = (train_outs.argmax(-1) == train_targets).mean()
         
         metrics = get_model_metrics(neurostock, test_loader, config)

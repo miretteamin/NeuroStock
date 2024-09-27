@@ -14,12 +14,16 @@ import pandas as pd
 from helper_fns import get_article_vectors, news_emb_model
 
 from day_graphs import DayGraphsCreation
+import socket
+from urllib3.connection import HTTPConnection
+
 
 def save_news_vectors(config):
     news_df = pd.read_csv(config["data"]["processed_news_df_path"])
     news_df["mentioned_companies"] = news_df["mentioned_companies"].apply(lambda x: str(x)[1:-1].replace("'","").replace(" ", "").split(","))
     stock_df = pd.read_csv(config["data"]["processed_stock_df_path"])
 
+    #Creating tartget column in historical 
     # Dict of a stock history df for each company
     company_stocks = {}
     for symbol, data in stock_df.groupby('symbol')[stock_df.columns]: #groupby company
@@ -35,15 +39,13 @@ def save_news_vectors(config):
     # Target length is 1296
     data["target"].value_counts()[1] # 1 --> 690  & 0 --> 606
 
-    import socket
-    from urllib3.connection import HTTPConnection
-
     HTTPConnection.default_socket_options = ( 
         HTTPConnection.default_socket_options + [
         (socket.SOL_SOCKET, socket.SO_SNDBUF, 1000000), #1MB in byte
         (socket.SOL_SOCKET, socket.SO_RCVBUF, 1000000)
     ])
 
+    #load NLP model 
     model, tokenizer = news_emb_model(type=config["graphs"]["news_emb_model"])
 
     model.eval()
