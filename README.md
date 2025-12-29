@@ -1,6 +1,6 @@
 # NeuroStock
 
-## Paper Link:
+## Paper Link
 https://papers.academic-conferences.org/index.php/icair/article/view/4294
 
 ## Abstract
